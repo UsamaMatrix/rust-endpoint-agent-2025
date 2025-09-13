@@ -13,7 +13,7 @@ jobs:
   lint-test-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
@@ -34,7 +34,7 @@ jobs:
   build-windows-gnu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y mingw-w64 gcc-mingw-w64-x86-64 zstd
       - run: rustup target add x86_64-pc-windows-gnu
