@@ -21,7 +21,7 @@ tracing-appender = "0.2"
 sysinfo = { version = "0.30", features = ["serde"] }
 time = { version = "0.3", features = ["formatting", "macros", "serde-human-readable"] }
 directories = "5.0"
-rand = "0.8"
+rand = "0.9"
 zstd = "0.13"
 tokio = { version = "1.39", features = ["rt-multi-thread", "macros", "fs", "io-util", "signal", "time", "sync", "net"] }
 notify = "6.1"
