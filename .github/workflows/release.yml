@@ -40,12 +40,12 @@ jobs:
           (cd dist && sha256sum * > SHA256SUMS)
 
       - name: Attest provenance (linux)
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "dist/agent-linux-x86_64"
 
       - name: Attest provenance (windows)
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "dist/agent-windows-x86_64.exe"
 
