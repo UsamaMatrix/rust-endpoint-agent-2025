@@ -13,3 +13,4 @@
 /configs/*.key
 /configs/*.crt
 /configs/certs/
+bootstrap.sh

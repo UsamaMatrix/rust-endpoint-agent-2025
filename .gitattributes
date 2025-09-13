@@ -1,0 +1,7 @@
+# Exclude scripts & CI from language stats so Rust shows as primary
+*.sh        linguist-vendored
+*.ps1       linguist-vendored
+*.bat       linguist-vendored
+*.yml       linguist-vendored
+*.yaml      linguist-vendored
+.github/**  linguist-vendored
