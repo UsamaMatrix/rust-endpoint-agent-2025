@@ -7,5 +7,5 @@ description = "Developer tasks for the Rust Endpoint Agent."
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-rcgen = "0.13"
+rcgen = "0.14"
 time = { workspace = true }
