@@ -39,7 +39,7 @@ proptest = "1.5"
 
 # exposed for agent/Cargo.toml (uses `workspace = true`)
 windows-service = "0.6"
-windows-sys = { version = "0.59", features = [
+windows-sys = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_System_Services",
   "Win32_System_EventLog"
