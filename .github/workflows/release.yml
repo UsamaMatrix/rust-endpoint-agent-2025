@@ -1,0 +1,59 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (linux x86_64)
+        run: cargo build --release -p agent
+
+      - name: Build (windows-gnu)
+        run: |
+          sudo apt-get update && sudo apt-get install -y mingw-w64 gcc-mingw-w64-x86-64 zstd
+          rustup target add x86_64-pc-windows-gnu
+          cargo build --release -p agent --target x86_64-pc-windows-gnu
+
+      - name: SBOM
+        run: |
+          cargo install cargo-about --locked || true
+          mkdir -p dist
+          cargo about generate -o dist/SBOM.json .about/about.hjson
+
+      - name: Checksums
+        run: |
+          mkdir -p dist
+          cp target/release/agent dist/agent-linux-x86_64
+          cp target/x86_64-pc-windows-gnu/release/agent.exe dist/agent-windows-x86_64.exe
+          (cd dist && sha256sum * > SHA256SUMS)
+
+      - name: Attest provenance (linux)
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: "dist/agent-linux-x86_64"
+
+      - name: Attest provenance (windows)
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: "dist/agent-windows-x86_64.exe"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/agent-linux-x86_64
+            dist/agent-windows-x86_64.exe
+            dist/SBOM.json
+            dist/SHA256SUMS

@@ -33,15 +33,14 @@ hyper-util = { version = "0.1", features = ["client", "server", "http1", "tokio"
 rustls = { version = "0.23", default-features = false, features = ["ring", "logging"] }
 rustls-pemfile = "2.1"
 tokio-rustls = "0.26"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json", "http2", "zstd"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls","gzip","json","http2","zstd"] }
 prometheus = "0.13"
 proptest = "1.5"
 
-# Make these available to agent/Cargo.toml which references them with `workspace = true`
+# exposed for agent/Cargo.toml (uses `workspace = true`)
 windows-service = "0.6"
 windows-sys = { version = "0.59", features = [
-  "Win32_System_EventLog",
-  "Win32_System_ServiceManagement",
-  "Win32_System_SystemServices",
-  "Win32_Foundation"
+  "Win32_Foundation",
+  "Win32_System_Services",
+  "Win32_System_EventLog"
 ] }

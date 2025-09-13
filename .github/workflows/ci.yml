@@ -1,8 +1,16 @@
 name: ci
-on: [push, pull_request]
-permissions: { contents: read, id-token: write }
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write   # provenance attestation
+  attestations: write
+
 jobs:
-  lint-test:
+  lint-test-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,8 +19,18 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --all --all-features --no-fail-fast
-      - name: audit
+      - name: cargo-audit
         uses: actions-rs/audit-check@v1
+      - name: cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          command: check
+      - name: Generate SBOM (cargo-about)
+        run: |
+          cargo install cargo-about --locked || true
+          mkdir -p target/sbom
+          cargo about generate -o target/sbom/sbom.json .about/about.hjson
+
   build-windows-gnu:
     runs-on: ubuntu-latest
     steps:
@@ -21,10 +39,16 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y mingw-w64 gcc-mingw-w64-x86-64 zstd
       - run: rustup target add x86_64-pc-windows-gnu
       - run: cargo build --release -p agent --target x86_64-pc-windows-gnu
-      - run: (cd target/x86_64-pc-windows-gnu/release && sha256sum agent.exe > agent.exe.sha256)
-      - uses: actions/upload-artifact@v4
+      - name: Checksums
+        run: (cd target/x86_64-pc-windows-gnu/release && sha256sum agent.exe > agent.exe.sha256)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: agent-windows-gnu
           path: |
             target/x86_64-pc-windows-gnu/release/agent.exe
             target/x86_64-pc-windows-gnu/release/agent.exe.sha256
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: "target/x86_64-pc-windows-gnu/release/agent.exe"
