@@ -1,11 +1,13 @@
 [workspace]
 members = ["agent", "server", "xtask"]
 resolver = "2"
+
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Rust Endpoint Agent maintainers"]
 rust-version = "1.75"
+
 [workspace.dependencies]
 anyhow = "1.0"
 thiserror = "1.0"
@@ -34,8 +36,3 @@ tokio-rustls = "0.26"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json", "http2", "zstd"] }
 prometheus = "0.13"
 proptest = "1.5"
-[target.'cfg(windows)'.workspace.dependencies]
-windows-service = "0.6"
-windows-sys = { version = "0.59", features = [
-  "Win32_System_EventLog","Win32_System_ServiceManagement","Win32_System_SystemServices","Win32_Foundation"
-] }
