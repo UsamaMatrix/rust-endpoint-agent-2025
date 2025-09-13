@@ -36,3 +36,12 @@ tokio-rustls = "0.26"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json", "http2", "zstd"] }
 prometheus = "0.13"
 proptest = "1.5"
+
+# Make these available to agent/Cargo.toml which references them with `workspace = true`
+windows-service = "0.6"
+windows-sys = { version = "0.59", features = [
+  "Win32_System_EventLog",
+  "Win32_System_ServiceManagement",
+  "Win32_System_SystemServices",
+  "Win32_Foundation"
+] }
