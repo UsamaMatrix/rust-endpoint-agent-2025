@@ -1,0 +1,44 @@
+[package]
+name = "agent"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "Apache-2.0"
+description = "Rust Endpoint Agent (2025) — Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening."
+[features]
+default = []
+networking = ["reqwest", "zstd"]
+status = ["prometheus", "hyper", "hyper-util"]
+win-events = []
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+sysinfo = { workspace = true }
+time = { workspace = true }
+directories = { workspace = true }
+rand = { workspace = true }
+uuid = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }
+notify = { workspace = true }
+zstd = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true, default-features = false, features = ["rustls-tls","gzip","json","http2","zstd"] }
+prometheus = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { workspace = true, optional = true }
+http = { workspace = true }
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
+tokio-rustls = { workspace = true }
+[target.'cfg(windows)'.dependencies]
+windows-service = { workspace = true }
+windows-sys = { workspace = true }
+[dev-dependencies]
+proptest = { workspace = true }

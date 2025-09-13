@@ -1,0 +1,15 @@
+/target
+**/*.rs.bk
+**/*.swp
+.DS_Store
+.idea
+.vscode
+*.pdb
+*.obj
+*.dll
+*.exe
+*.log
+/configs/*.pem
+/configs/*.key
+/configs/*.crt
+/configs/certs/

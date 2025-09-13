@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Developer tasks for the Rust Endpoint Agent."
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+rcgen = "0.13"
+time = { workspace = true }
