@@ -1,10 +1,14 @@
 # 🦀 Rust Endpoint Agent (2025)
-![Banner](docs/banner.svg)
+
+![Banner](docs/banner.svg)<!-- replace with your own banner; or remove this line -->
+
 <p align="center">
-  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="420">
+  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="360">
   &nbsp;&nbsp;&nbsp;
+  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Coding GIF" width="360">
 </p>
-**Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening.**  
+
+**Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening.**
 *by [@UsamaMatrix](https://github.com/UsamaMatrix) — Rust Developer & Cyber Security Expert*
 
 <p align="left">
@@ -18,31 +22,50 @@
 </p>
 
 > ### Ethics & Authorized Use
-> • **Professional/authorized environments only.**  
-> • Transparent operation; **no stealth**.  
-> • **No self-update**, **no hidden watchdogs**, **no kernel drivers**, **no persistence** beyond a documented Windows Service.  
-> • Least privilege, strong auth (mTLS), signed releases, and complete audit trails.
-
----
-
-<p align="center">
-  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Coding GIF" width="420">
-</p>
+>
+> • **Professional/authorized environments only.**
+> • Transparent operation; **no stealth**.
+> • **No self-update**, **no hidden watchdogs**, **no kernel drivers**.
+> • Persistence only via a documented Windows Service.
+> • Least privilege, strong auth (mTLS), signed releases, audit trails.
 
 ---
 
 ## ✨ Highlights
 
-- 🧠 **Collectors** (Windows-first; Linux compatible where possible):
-  CPU %, memory, disks (per mount), network I/O, process top-N, OS info (name/version/kernel/uptime/boot).
-  Optional **Windows Event Log** tailer (rate-limited).
-- 📤 **Outputs**
-  - Default: NDJSON → **stdout**
-  - Optional (feature `networking`): **HTTPS** POST batches (rustls) to `/ingest`, with optional **zstd** compression and a **bounded disk queue**
-  - Optional: NDJSON → rotating **file** (size-based)
-- 🔐 **Security**: rustls, optional **mTLS** (client certs), optional **SPKI pinning**, no `unsafe`, JSON size limits.
-- 🩺 **Health** (feature `status`): `GET /healthz` → `ok`, `GET /metrics` → `rea_up 1`
-- 🛠 **Windows Service**: visible SCM service, installer/uninstaller subcommands.
+* 🧠 **Collectors** (Windows-first; Linux compatible where possible): CPU, memory, disks (per mount), network I/O, top-N processes, OS info (name/version/kernel/uptime/boot), optional **Windows Event Log** tailer (rate-limited).
+* 📤 **Outputs**
+
+  * NDJSON → **stdout** (default)
+  * NDJSON → **file** (size-rotated)
+  * Feature `networking`: HTTPS POST batches (rustls) with optional **zstd** + **bounded disk queue**
+* 🔐 **Security**: rustls TLS, optional **mTLS**, optional **SPKI pinning**, strictly bounded JSON size, no `unsafe`.
+* 🩺 **Health** (feature `status`): `GET /healthz` → `ok`, `GET /metrics` → `rea_up 1`
+* 🪟 **Windows Service**: visible in SCM; installer/uninstaller subcommands.
+
+---
+
+## 🧱 Feature Flags
+
+| Feature      | What it does                                 | Default |
+| ------------ | -------------------------------------------- | ------- |
+| `networking` | HTTPS client (reqwest+rustls), optional zstd | off     |
+| `status`     | Local TCP status: `/healthz`, `/metrics`     | off     |
+| `win-events` | Windows Event Log tailer hook                | off     |
+
+---
+
+## 🧩 Collectors (current)
+
+| Collector | Fields (examples)                                                                 |
+| --------- | --------------------------------------------------------------------------------- |
+| CPU       | `global_cpu_percent`, `load_avg_{1,5,15}`                                         |
+| Memory    | `total`, `used`, `free` (bytes)                                                   |
+| Disk      | per mount: `name`, `total`, `available`                                           |
+| Network   | per iface: `name`, `total_received`, `total_transmitted`                          |
+| Process   | `total`, `top[] { pid, name, cpu, mem_bytes }`                                    |
+| OS        | `name`, `version`, `kernel_version`, `host_name`, `uptime_secs`, `boot_time_secs` |
+| WinEvent  | (Windows only, feature `win-events`)                                              |
 
 ---
 
@@ -50,25 +73,29 @@
 
 ```mermaid
 flowchart LR
-  subgraph Endpoint[Windows/Linux Endpoint]
-    A[Collectors\nCPU/Mem/Disk/Net/Proc/OS/WinEventLog] --> E[Emitter\nNDJSON]
-    E -->|stdout| L[Structured Logs]
-    E -->|file|  F[Rotating File]
-    E -->|mpsc|  Q[(Disk Queue\nbounded)]
-    Q -->|flush| N[HTTPS Client\n(rustls + zstd)]
-    N -->|POST /ingest| Srv[(Test Receiver\n127.0.0.1:8443)]
-    subgraph Status["Optional Status Server (feature=status)"]
-      H[/healthz/]
-      M[/metrics/]
-    end
+  subgraph Endpoint["Windows/Linux Endpoint"]
+    A[Collectors: CPU/Mem/Disk/Net/Proc/OS/WinEventLog] --> E[Emitter (NDJSON)]
+    E --> L[Structured Logs (stdout)]
+    E --> F[Rotating File]
+    E --> Q[(Disk Queue\nbounded)]
+    Q --> N[HTTPS Client\n(rustls + zstd)]
+  end
+
+  N -- "POST /ingest" --> Srv[(Test Receiver\n127.0.0.1:8443)]
+
+  subgraph Status["Status Server (feature=status)"]
+    H[/GET /healthz/]
+    M[/GET /metrics/]
   end
 
   Admin[Admin/CI] -->|Install| SCM[Windows SCM Service]
-````
+```
+
+*(If GitHub still can’t render Mermaid, ensure your repo is public and the code block starts with ` ```mermaid ` exactly.)*
 
 ---
 
-## 📦 Repository Layout (workspace)
+## 📦 Repository Layout
 
 ```
 /agent                          # Endpoint agent (binary crate)
@@ -84,7 +111,7 @@ flowchart LR
     service/
       mod.rs install.rs uninstall.rs
 /server                         # Local HTTPS receiver for tests (binary crate)
-/xtask                          # Dev helper (e.g., local certs)
+/xtask                          # Dev helpers (e.g., local certs)
 /configs
   agent.example.toml
 /.github/workflows/ci.yml
@@ -107,7 +134,7 @@ cargo run -p xtask -- certs --dns 127.0.0.1
 # 2) Start the local HTTPS receiver (127.0.0.1:8443)
 RUST_LOG=server=info cargo run -p server -- \
   configs/certs/server.crt configs/certs/server.key
-# (Leave it running; ctrl+c to stop)
+# Leave it running (Ctrl+C to stop)
 
 # 3) In another terminal, run the agent with networking + status
 RUST_LOG=info cargo run -p agent --features "networking,status" -- \
@@ -143,9 +170,7 @@ RUST_LOG=info cargo run -p agent --features "networking,status" -- \
 
 ## ⚙️ Configuration
 
-**Precedence**: `CLI` ➜ `ENV` ➜ `FILE` ➜ built-in defaults.
-
-Your config struct is:
+**Precedence**: `CLI` ➜ `ENV` ➜ `FILE` ➜ defaults.
 
 ```rust
 AgentConfig {
@@ -162,7 +187,7 @@ AgentConfig {
 }
 ```
 
-### Example: `configs/agent.example.toml` (works with the current code)
+### Example: `configs/agent.example.toml`
 
 ```toml
 [common]
@@ -223,15 +248,6 @@ REA_INTERVAL_SECS=5
 * `GET http://127.0.0.1:<port>/healthz` → `ok`
 * `GET http://127.0.0.1:<port>/metrics` → `rea_up 1`
 
-Enable at runtime:
-
-```bash
-RUST_LOG=info cargo run -p agent --features "status,networking" -- \
-  --config configs/agent.example.toml \
-  --status-port 9100 \
-  --enable-networking
-```
-
 ---
 
 ## 🪟 Windows Service (transparent & documented)
@@ -244,7 +260,7 @@ Install (PowerShell **Run as Administrator**):
 
 # Start / Stop
 Start-Service "Rust Endpoint Agent"
-Stop-Service "Rust Endpoint Agent"
+Stop-Service  "Rust Endpoint Agent"
 
 # Recovery policy via SCM (no custom watchdogs)
 sc.exe failure "Rust Endpoint Agent" reset= 86400 actions= restart/5000
@@ -282,18 +298,18 @@ cp target/x86_64-pc-windows-gnu/release/agent.exe /mnt/hgfs/VMShare/
 
 ## 🔒 Security Model & Non-Goals
 
-* **Transport**: rustls TLS, optional client mTLS, optional SPKI pinning
-* **Data**: JSON size caps
-* **Privilege**: no `unsafe`, no kernel drivers
-* **Visibility**: Windows SCM service with honest display name
-* **Resource bounds**: bounded queue, retry budget
-* **Non-goals**: stealth, hidden persistence, self-update, kernel drivers
+| Area       | Stance                                                      |
+| ---------- | ----------------------------------------------------------- |
+| Transport  | rustls TLS; optional client **mTLS**; optional SPKI pinning |
+| Data       | JSON size caps; bounded envelopes                           |
+| Privilege  | No `unsafe`; **no** kernel drivers                          |
+| Visibility | Windows SCM service with honest display name                |
+| Resource   | Bounded disk queue; retry budget                            |
+| Non-goals  | Stealth, hidden persistence, self-update, kernel drivers    |
 
 ---
 
 ## 🧪 Testing & Quality
-
-Local:
 
 ```bash
 cargo fmt --all
@@ -313,22 +329,18 @@ CI (GitHub Actions) recommendations:
 
 ## 🤝 Contributing
 
-* See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`
-* Only features aligned with **transparent, authorized** endpoint telemetry will be accepted
+See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+Only features aligned with **transparent, authorized** endpoint telemetry will be accepted.
 
 ---
 
 ## 🛡️ Security
 
-* Report vulnerabilities via `SECURITY.md`
-* Coordinated disclosure appreciated
-* We run `cargo-audit`/`cargo-deny` and ship SBOMs on releases
+Report vulnerabilities via `SECURITY.md`.
+We run `cargo-audit`/`cargo-deny` and ship SBOMs on releases.
 
 ---
 
 ## 📜 License
 
 **Apache-2.0** — see [LICENSE](LICENSE)
-
----
-
