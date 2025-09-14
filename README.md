@@ -109,6 +109,13 @@ RUST_LOG=info cargo run -p agent --features "networking,status" -- \
 curl -s http://127.0.0.1:9100/healthz
 curl -s http://127.0.0.1:9100/metrics | head
 ```
+### mTLS Quickstart
+
+```bash
+cargo run -p xtask -- mtls --dns 127.0.0.1
+RUST_LOG=server=info cargo run -p server -- configs/certs/server.crt configs/certs/server.key configs/certs/ca.crt &
+RUST_LOG=info cargo run -p agent --features "networking,status" -- --config configs/agent.example.toml
+```
 
 ---
 
