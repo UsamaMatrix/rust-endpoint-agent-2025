@@ -1,4 +1,5 @@
 # 🦀 Rust Endpoint Agent (2025)
+![Banner](docs/banner.svg)
 
 **Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening.**
 *by [@UsamaMatrix](https://github.com/UsamaMatrix) — Rust Developer & Cyber Security Expert*
