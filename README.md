@@ -1,6 +1,9 @@
 # 🦀 Rust Endpoint Agent (2025)
 ![Banner](docs/banner.svg)
-
+<p align="center">
+  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="420">
+  &nbsp;&nbsp;&nbsp;
+</p>
 **Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening.**  
 *by [@UsamaMatrix](https://github.com/UsamaMatrix) — Rust Developer & Cyber Security Expert*
 
@@ -23,8 +26,6 @@
 ---
 
 <p align="center">
-  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="420">
-  &nbsp;&nbsp;&nbsp;
   <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Coding GIF" width="420">
 </p>
 
