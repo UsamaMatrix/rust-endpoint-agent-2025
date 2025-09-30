@@ -1,6 +1,6 @@
 # 🦀 Rust Endpoint Agent (2025)
 
-![Banner](docs/banner.svg)<!-- replace with your own banner; or remove this line -->
+<!-- ![Banner](docs/banner.svg)replace with your own banner; or remove this line -->
 
 <p align="center">
   <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="360">
@@ -71,7 +71,8 @@
 
 ## 🗺️ Architecture
 
-```mermaid
+<!-- ```mermaid -->
+```
 flowchart LR
   subgraph Endpoint["Windows/Linux Endpoint"]
     A[Collectors: CPU/Mem/Disk/Net/Proc/OS/WinEventLog] --> E[Emitter (NDJSON)]
@@ -91,7 +92,7 @@ flowchart LR
   Admin[Admin/CI] -->|Install| SCM[Windows SCM Service]
 ```
 
-*(If GitHub still can’t render Mermaid, ensure your repo is public and the code block starts with ` ```mermaid ` exactly.)*
+<!-- *(If GitHub still can’t render Mermaid, ensure your repo is public and the code block starts with ` ```mermaid ` exactly.)* -->
 
 ---
 
