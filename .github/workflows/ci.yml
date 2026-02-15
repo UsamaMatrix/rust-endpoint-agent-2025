@@ -49,6 +49,6 @@ jobs:
             target/x86_64-pc-windows-gnu/release/agent.exe
             target/x86_64-pc-windows-gnu/release/agent.exe.sha256
       - name: Attest provenance
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "target/x86_64-pc-windows-gnu/release/agent.exe"
