@@ -1,9 +1,7 @@
 # 🦀 Rust Endpoint Agent (2025)
 
 <p align="center">
-  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="360">
-  &nbsp;&nbsp;&nbsp;
-  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Cog GIF" width="360">
+  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="380">
 </p>
 
 **Windows-first, modular endpoint telemetry in Rust**, with transparent operation, optional HTTPS/mTLS transport, zstd batching, bounded disk buffering, and a documented Windows Service integration.
@@ -52,6 +50,10 @@ flowchart LR
 ```
 
 > The test receiver currently configures server-side TLS without client authentication. The agent supports client certificates; use a separately configured mTLS-capable receiver when mutual authentication is required.
+
+<p align="center">
+  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Cog GIF" width="380">
+</p>
 
 ## Workspace layout
 
