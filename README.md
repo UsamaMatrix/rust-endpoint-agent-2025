@@ -1,347 +1,147 @@
 # 🦀 Rust Endpoint Agent (2025)
 
-<!-- ![Banner](docs/banner.svg)replace with your own banner; or remove this line -->
+**Windows-first, modular endpoint telemetry in Rust**, with transparent operation, optional HTTPS/mTLS transport, zstd batching, bounded disk buffering, and a documented Windows Service integration.
 
-<p align="center">
-  <img src="https://cdnb.artstation.com/p/assets/images/images/042/806/685/original/terrified-of-ice-cream-ferrisrust-frame.gif" alt="Ferris GIF" width="360">
-  &nbsp;&nbsp;&nbsp;
-  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHJ1dWhia3UzMmttMmUydjJjcjFqejJxN2o0MGptMmt4dTRjaDNlYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q/Npdl9kOaKFJHuRCBGx/giphy.gif" alt="Rusty Coding GIF" width="360">
-</p>
+[![CI](https://img.shields.io/github/actions/workflow/status/UsamaMatrix/rust-endpoint-agent-2025/ci.yml?label=CI&logo=github)](https://github.com/UsamaMatrix/rust-endpoint-agent-2025/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)
+![Platform](https://img.shields.io/badge/Windows--first-0078D6?logo=windows)
 
-**Windows-first, modular telemetry agent with mTLS and enterprise-grade hardening.**
-*by [@UsamaMatrix](https://github.com/UsamaMatrix) — Rust Developer & Cyber Security Expert*
+> **Authorized use only.** This project is designed for transparent endpoint administration and observability. It has no stealth mode, hidden watchdog, self-update mechanism, kernel driver, or undocumented persistence. Windows persistence is limited to a visible Service Control Manager entry.
 
-<p align="left">
-  <a href="https://github.com/UsamaMatrix/rust-endpoint-agent-2025/actions">
-    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/UsamaMatrix/rust-endpoint-agent-2025/ci.yml?label=CI&logo=github">
-  </a>
-  <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg">
-  <img alt="Rust" src="https://img.shields.io/badge/Rust-stable-orange?logo=rust">
-  <img alt="Security" src="https://img.shields.io/badge/Security-First-6aa84f?logo=shield">
-  <img alt="Platform" src="https://img.shields.io/badge/Windows-first-0078D6?logo=windows">
-</p>
+## Highlights
 
-> ### Ethics & Authorized Use
->
-> • **Professional/authorized environments only.**
-> • Transparent operation; **no stealth**.
-> • **No self-update**, **no hidden watchdogs**, **no kernel drivers**.
-> • Persistence only via a documented Windows Service.
-> • Least privilege, strong auth (mTLS), signed releases, audit trails.
+- Collects CPU, memory, disks, network I/O, top-N processes, OS information, and optional Windows Event Log data.
+- Emits bounded NDJSON envelopes to stdout or a rotating file.
+- Optionally posts HTTPS batches using `reqwest`/rustls, zstd compression, mTLS material, and a bounded disk queue.
+- Provides optional local `GET /healthz` and `GET /metrics` endpoints.
+- Supports Windows Service install/uninstall subcommands; service code is compiled only for Windows.
+- Uses Rust 2021, denies warnings in CI, and contains no `unsafe` code in the agent implementation.
 
----
+## Architecture
 
-## ✨ Highlights
+The collector loop in `agent/src/collectors/mod.rs` refreshes `sysinfo`, serializes one bounded `TelemetryEnvelope` per collector, logs it, and optionally sends it to the networking channel. The transport task persists lines in `DiskQueue`, removes the oldest entries when the byte cap is exceeded, and periodically posts a batch. The local `server` binary is a TLS test receiver; it is separate from the agent's optional loopback status server.
 
-* 🧠 **Collectors** (Windows-first; Linux compatible where possible): CPU, memory, disks (per mount), network I/O, top-N processes, OS info (name/version/kernel/uptime/boot), optional **Windows Event Log** tailer (rate-limited).
-* 📤 **Outputs**
-
-  * NDJSON → **stdout** (default)
-  * NDJSON → **file** (size-rotated)
-  * Feature `networking`: HTTPS POST batches (rustls) with optional **zstd** + **bounded disk queue**
-* 🔐 **Security**: rustls TLS, optional **mTLS**, optional **SPKI pinning**, strictly bounded JSON size, no `unsafe`.
-* 🩺 **Health** (feature `status`): `GET /healthz` → `ok`, `GET /metrics` → `rea_up 1`
-* 🪟 **Windows Service**: visible in SCM; installer/uninstaller subcommands.
-
----
-
-## 🧱 Feature Flags
-
-| Feature      | What it does                                 | Default |
-| ------------ | -------------------------------------------- | ------- |
-| `networking` | HTTPS client (reqwest+rustls), optional zstd | off     |
-| `status`     | Local TCP status: `/healthz`, `/metrics`     | off     |
-| `win-events` | Windows Event Log tailer hook                | off     |
-
----
-
-## 🧩 Collectors (current)
-
-| Collector | Fields (examples)                                                                 |
-| --------- | --------------------------------------------------------------------------------- |
-| CPU       | `global_cpu_percent`, `load_avg_{1,5,15}`                                         |
-| Memory    | `total`, `used`, `free` (bytes)                                                   |
-| Disk      | per mount: `name`, `total`, `available`                                           |
-| Network   | per iface: `name`, `total_received`, `total_transmitted`                          |
-| Process   | `total`, `top[] { pid, name, cpu, mem_bytes }`                                    |
-| OS        | `name`, `version`, `kernel_version`, `host_name`, `uptime_secs`, `boot_time_secs` |
-| WinEvent  | (Windows only, feature `win-events`)                                              |
-
----
-
-## 🗺️ Architecture
-
-<!-- ```mermaid -->
-```
+```mermaid
 flowchart LR
-  subgraph Endpoint["Windows/Linux Endpoint"]
-    A[Collectors: CPU/Mem/Disk/Net/Proc/OS/WinEventLog] --> E[Emitter (NDJSON)]
-    E --> L[Structured Logs (stdout)]
-    E --> F[Rotating File]
-    E --> Q[(Disk Queue\nbounded)]
-    Q --> N[HTTPS Client\n(rustls + zstd)]
+  subgraph Endpoint["Endpoint (Windows first; Linux dev supported)"]
+    C["Collectors\nCPU • memory • disk • network • process • OS\noptional Windows Event Log"]
+    E["TelemetryEnvelope\nJSON/NDJSON + size cap"]
+    C --> E
+    E --> O["Output\nstdout or rotating file"]
+    E --> T["Networking feature"]
+    T --> Q["Bounded DiskQueue\noldest entries evicted at cap"]
+    Q --> B["Batch + retry budget"]
+    B --> H["HTTPS client\nrustls • optional mTLS • zstd"]
   end
 
-  N -- "POST /ingest" --> Srv[(Test Receiver\n127.0.0.1:8443)]
+  H -->|"POST /ingest"| R["server test receiver\n127.0.0.1:8443"]
 
-  subgraph Status["Status Server (feature=status)"]
-    H[/GET /healthz/]
-    M[/GET /metrics/]
+  subgraph Status["status feature (agent loopback)"]
+    Z["GET /healthz"]
+    M["GET /metrics"]
   end
 
-  Admin[Admin/CI] -->|Install| SCM[Windows SCM Service]
+  A["Administrator"] -->|"service install/uninstall"| SCM["Windows SCM\nvisible service entry"]
 ```
 
-<!-- *(If GitHub still can’t render Mermaid, ensure your repo is public and the code block starts with ` ```mermaid ` exactly.)* -->
+> The test receiver currently configures server-side TLS without client authentication. The agent supports client certificates; use a separately configured mTLS-capable receiver when mutual authentication is required.
 
----
+## Workspace layout
 
-## 📦 Repository Layout
-
-```
-/agent                          # Endpoint agent (binary crate)
-  /src
-    main.rs
-    lib.rs
-    config.rs
-    logging.rs
-    collectors/
-      mod.rs cpu.rs mem.rs disk.rs net.rs proc.rs os.rs win_eventlog.rs
-    transport/
-      mod.rs client.rs queue.rs
-    service/
-      mod.rs install.rs uninstall.rs
-/server                         # Local HTTPS receiver for tests (binary crate)
-/xtask                          # Dev helpers (e.g., local certs)
-/configs
-  agent.example.toml
-/.github/workflows/ci.yml
-/.gitignore
-/LICENSE
-/SECURITY.md
-/CODE_OF_CONDUCT.md
-/CONTRIBUTING.md
-/README.md
+```text
+agent/                    Endpoint agent binary and library
+  src/main.rs              CLI and run/service dispatch
+  src/config.rs            CLI/env/file configuration precedence
+  src/collectors/          Telemetry collection and envelopes
+  src/transport/           HTTPS/mTLS, queue, and status server
+  src/service/              Windows SCM integration
+server/                   Local HTTPS receiver for development
+xtask/                    Certificate generation and developer lint helper
+configs/agent.example.toml Example configuration
+.github/workflows/ci.yml  Formatting, lint, tests, audit, SBOM, Windows build
+Cargo.toml                Rust workspace and shared dependencies
+deny.toml                 cargo-deny policy
 ```
 
----
+## Stack and feature flags
 
-## 🚀 Quickstart (Linux dev)
+The workspace targets Rust **1.75+** on the stable channel and uses Rust 2021. Important libraries include `tokio`, `sysinfo`, `serde`/`serde_json`, `reqwest` + rustls, `hyper`, `tracing`, `zstd`, and `clap`.
+
+| Feature | Effect | Default |
+| --- | --- | --- |
+| `networking` | HTTPS sender, rustls client, optional zstd compression and queue | off |
+| `status` | Loopback `/healthz` and `/metrics` server | off |
+| `win-events` | Windows Event Log tailer hook | off |
+
+## Quickstart (Linux development)
 
 ```bash
-# 1) Generate local TLS for 127.0.0.1 (self-signed)
+# Stable Rust, rustfmt, and clippy are selected by rust-toolchain.toml
 cargo run -p xtask -- certs --dns 127.0.0.1
 
-# 2) Start the local HTTPS receiver (127.0.0.1:8443)
+# Terminal 1: local HTTPS test receiver
 RUST_LOG=server=info cargo run -p server -- \
   configs/certs/server.crt configs/certs/server.key
-# Leave it running (Ctrl+C to stop)
 
-# 3) In another terminal, run the agent with networking + status
+# Terminal 2: agent with networking and status endpoints
 RUST_LOG=info cargo run -p agent --features "networking,status" -- \
   --config configs/agent.example.toml \
   --enable-networking \
   --status-port 9100
 
-# 4) Health & metrics
 curl -s http://127.0.0.1:9100/healthz
 curl -s http://127.0.0.1:9100/metrics
 ```
 
-### mTLS variant
+The agent runs until interrupted with `Ctrl+C`. Configuration precedence is **CLI → environment → file → defaults**. Supported examples include `REA_CONFIG`, `REA_ENABLE_NETWORKING`, and `REA_INTERVAL_SECS`.
+
+### Developer checks
 
 ```bash
-# Generate CA + server + client certs (example xtask)
-cargo run -p xtask -- mtls --dns 127.0.0.1
-
-# Start server that REQUIRES client auth (pass CA as 3rd arg)
-RUST_LOG=server=info cargo run -p server -- \
-  configs/certs/server.crt configs/certs/server.key configs/certs/ca.crt
-
-# Ensure agent config points to ca_cert/client_cert/client_key (see example below)
-RUST_LOG=info cargo run -p agent --features "networking,status" -- \
-  --config configs/agent.example.toml \
-  --enable-networking \
-  --status-port 9100
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test --all --all-features --no-fail-fast
+cargo audit
+cargo deny check
 ```
 
-> The agent runs continuously until you press **Ctrl+C**.
+`cargo run -p xtask -- lint` runs formatting and clippy. `cargo-about` generates the SBOM used by CI from `.about/about.hjson`.
 
----
-
-## ⚙️ Configuration
-
-**Precedence**: `CLI` ➜ `ENV` ➜ `FILE` ➜ defaults.
-
-```rust
-AgentConfig {
-  common { instance_id, interval_secs, max_event_bytes },
-  collectors { top_n_procs, win_eventlog_channels, win_eventlog_rps },
-  output { mode, file_path, rotate_bytes },
-  networking {
-    enabled, endpoint, batch_max_events, batch_max_bytes,
-    flush_interval_ms, queue_dir, queue_max_bytes,
-    ca_cert, client_cert, client_key, spki_pin_sha256,
-    compression, retry_budget
-  },
-  status { port }
-}
-```
-
-### Example: `configs/agent.example.toml`
-
-```toml
-[common]
-instance_id      = "rea-dev"
-interval_secs    = 5
-max_event_bytes  = 131072        # 128 KiB
-
-[collectors]
-top_n_procs           = 5
-win_eventlog_channels = ["System","Application"]
-win_eventlog_rps      = 10
-
-[output]
-mode         = "stdout"          # or "file"
-file_path    = "data/logs/agent.jsonl"
-rotate_bytes = 10485760          # 10 MiB
-
-[networking]
-enabled           = false         # can be overridden by --enable-networking
-endpoint          = "https://127.0.0.1:8443/ingest"
-batch_max_events  = 200
-batch_max_bytes   = 524288        # 512 KiB
-flush_interval_ms = 2000
-queue_dir         = "data/queue"
-queue_max_bytes   = 52428800      # 50 MiB
-ca_cert           = ""            # set to configs/certs/ca.crt for mTLS
-client_cert       = ""            # set for mTLS
-client_key        = ""            # set for mTLS
-spki_pin_sha256   = ""            # optional
-compression       = "zstd"        # "zstd" | "none"
-retry_budget      = 8
-
-[status]
-port = 9100
-```
-
-### CLI (selected)
-
-```bash
-agent --help
-
-# Important toggles:
-agent --config <path> --enable-networking --status-port 9100
-```
-
-### Environment variables (examples)
-
-```
-REA_CONFIG=...                       # path to config file
-REA_ENABLE_NETWORKING=true
-REA_INTERVAL_SECS=5
-```
-
----
-
-## 🩺 Health & Metrics (feature = `status`)
-
-* `GET http://127.0.0.1:<port>/healthz` → `ok`
-* `GET http://127.0.0.1:<port>/metrics` → `rea_up 1`
-
----
-
-## 🪟 Windows Service (transparent & documented)
-
-Install (PowerShell **Run as Administrator**):
-
-```powershell
-# Install (visible in Services.msc)
-.\agent.exe service install --display-name "Rust Endpoint Agent" --config "C:\ProgramData\REA\agent.toml"
-
-# Start / Stop
-Start-Service "Rust Endpoint Agent"
-Stop-Service  "Rust Endpoint Agent"
-
-# Recovery policy via SCM (no custom watchdogs)
-sc.exe failure "Rust Endpoint Agent" reset= 86400 actions= restart/5000
-
-# Uninstall (clean removal)
-.\agent.exe service uninstall
-```
-
-> **No hidden persistence**. Only SCM entries created by the installer.
-
----
-
-## 🧰 Kali (VMware) → Windows Cross-Compile
+## Windows GNU build
 
 ```bash
 sudo apt update
-sudo apt install -y mingw-w64 gcc-mingw-w64-x86-64 openssl ca-certificates pkg-config zstd
+sudo apt install -y mingw-w64 gcc-mingw-w64-x86-64 zstd
 rustup target add x86_64-pc-windows-gnu
-
 mkdir -p .cargo
-cat > .cargo/config.toml <<'TOML'
-[target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"
-TOML
-
-# Build Windows agent.exe
+printf '[target.x86_64-pc-windows-gnu]\nlinker = "x86_64-w64-mingw32-gcc"\n' > .cargo/config.toml
 cargo build --release -p agent --target x86_64-pc-windows-gnu
-
-# VMware Shared Folders example
-sudo vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other,auto_unmount
-cp target/x86_64-pc-windows-gnu/release/agent.exe /mnt/hgfs/VMShare/
+sha256sum target/x86_64-pc-windows-gnu/release/agent.exe
 ```
 
----
+The CI workflow uploads `agent.exe` and its checksum and attempts a build-provenance attestation. On Windows, a built executable can be installed transparently from an elevated PowerShell prompt:
 
-## 🔒 Security Model & Non-Goals
-
-| Area       | Stance                                                      |
-| ---------- | ----------------------------------------------------------- |
-| Transport  | rustls TLS; optional client **mTLS**; optional SPKI pinning |
-| Data       | JSON size caps; bounded envelopes                           |
-| Privilege  | No `unsafe`; **no** kernel drivers                          |
-| Visibility | Windows SCM service with honest display name                |
-| Resource   | Bounded disk queue; retry budget                            |
-| Non-goals  | Stealth, hidden persistence, self-update, kernel drivers    |
-
----
-
-## 🧪 Testing & Quality
-
-```bash
-cargo fmt --all
-cargo clippy --all-targets -- -D warnings
-cargo test --all --all-features --no-fail-fast
+```powershell
+.\agent.exe service install --display-name "Rust Endpoint Agent" --config "C:\ProgramData\REA\agent.toml"
+Start-Service "Rust Endpoint Agent"
+Stop-Service "Rust Endpoint Agent"
+.\agent.exe service uninstall
 ```
 
-CI (GitHub Actions) recommendations:
+## CI status and troubleshooting
 
-* Format + Clippy (deny warnings)
-* `cargo-audit` & `cargo-deny`
-* SBOM (`cargo-about`)
-* Windows cross-build artifact + checksums
-* OIDC provenance attestation
+CI is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). The `lint-test-audit` job runs fmt, clippy, all-feature tests, `cargo-audit`, `cargo-deny`, and SBOM generation. `build-windows-gnu` cross-compiles the agent, creates a SHA-256 checksum, uploads the artifact, and attests it.
 
----
+The latest displayed failures were associated with Dependabot commit [`d31fc65`](https://github.com/UsamaMatrix/rust-endpoint-agent-2025/commit/d31fc656cb00602b5913e5cdd4e02f31ca080c0c), which only changes `actions/upload-artifact` from v4 to v6. The two failed runs are [lint/test/audit](https://github.com/UsamaMatrix/rust-endpoint-agent-2025/actions/runs/20246545680) and [Windows GNU build](https://github.com/UsamaMatrix/rust-endpoint-agent-2025/actions/runs/20246546480). Because the available check summary does not expose step-level logs, the exact compiler/action error must be confirmed in the **Details** view before treating the action bump as the root cause. Reproduce the code portion locally with the commands above; inspect the failed step first rather than disabling the security checks.
 
-## 🤝 Contributing
+## Security model
 
-See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
-Only features aligned with **transparent, authorized** endpoint telemetry will be accepted.
+- TLS uses rustls; client certificates and CA roots are optional configuration.
+- JSON event size, batch size, queue size, and retry budget are bounded.
+- No kernel drivers, hidden persistence, stealth, self-update, or unsafe agent code.
+- Report vulnerabilities using the process in [`SECURITY.md`](SECURITY.md).
 
----
+## Contributing and license
 
-## 🛡️ Security
-
-Report vulnerabilities via `SECURITY.md`.
-We run `cargo-audit`/`cargo-deny` and ship SBOMs on releases.
-
----
-
-## 📜 License
-
-**Apache-2.0** — see [LICENSE](LICENSE)
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Contributions must remain aligned with transparent, authorized endpoint telemetry. Licensed under [Apache-2.0](LICENSE).
